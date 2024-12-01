@@ -220,13 +220,11 @@ namespace LiteNetLib
             NetDebug.Write(NetLogLevel.Trace, "[NAT] introduction received");
 
             // send internal punch
-            var punchPacket = new NatPunchPacket {Token = req.Token};
+            var punchPacket = new NatPunchPacket { Token = req.Token };
             Send(punchPacket, req.Internal);
             NetDebug.Write(NetLogLevel.Trace, $"[NAT] internal punch sent to {req.Internal}");
 
-            // hack for some routers
-            _socket.Ttl = 2;
-            _socket.SendRaw(new[] { (byte)PacketProperty.Empty }, 0, 1, req.External);
+            SendNatPunchPacket(req.External);
 
             // send external punch
             _socket.Ttl = NetConstants.SocketTTL;
@@ -259,6 +257,15 @@ namespace LiteNetLib
                     Token = req.Token
                 });
             }
+        }
+
+        // Send the actual Nat Punch packet to pave the way
+        public void SendNatPunchPacket(IPEndPoint natPunchTarget, bool reduceTTL = true)
+        {
+            // hack for some routers
+            // ... really? There may be more complicated networks than a consumer grade router.
+            if (reduceTTL) _socket.Ttl = 2;
+            _socket.SendRaw(new[] { (byte)PacketProperty.Empty }, 0, 1, natPunchTarget);
         }
     }
 }
